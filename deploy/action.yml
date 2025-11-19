@@ -1,0 +1,75 @@
+name: Databricks Mason
+description: Validate, plan, deploy, and run Databricks Assets Bundle
+
+inputs:
+  directory:
+    description: Root of the bundle project folder
+    required: true
+    default: "."
+  target:
+    description: Context of bundle deployment
+    required: true
+  stage:
+    description: Run stage of bundle deployment
+    required: true
+    default: plan
+  image:
+    description: Docker Image reference of Databricks Assets Bundle
+    required: false
+    default: ghcr.io/databricks/cli:latest
+
+runs:
+  using: composite
+  steps:
+    - name: Validate Databricks Bundle
+      shell: bash
+      run: |
+        docker run --rm \
+          --env "DATABRICKS_BUNDLE_ENV=${DATABRICKS_BUNDLE_ENV}" \
+          --env "DATABRICKS_HOST=${DATABRICKS_HOST}" \
+          --env "DATABRICKS_AUTH_TYPE=github-oidc" \
+          --env "DATABRICKS_CLIENT_ID=${DATABRICKS_CLIENT_ID}" \
+          --env "ACTIONS_ID_TOKEN_REQUEST_URL=${ACTIONS_ID_TOKEN_REQUEST_URL}" \
+          --env "ACTIONS_ID_TOKEN_REQUEST_TOKEN=${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
+          --volume "${GITHUB_WORKSPACE}/${DATABRICKS_BUNDLE_DIRECTORY}:/bundle" \
+          --workdir "/bundle" \
+          ${DATABRICKS_BUNDLE_IMAGE_REF} bundle validate
+      env:
+        DATABRICKS_BUNDLE_DIRECTORY: ${{ inputs.directory }}
+        DATABRICKS_BUNDLE_ENV: ${{ inputs.target }}
+        DATABRICKS_BUNDLE_IMAGE_REF: ${{ inputs.image }}
+    - name: Execute Databricks Bundle
+      shell: bash
+      run: |
+        docker run --rm \
+          --env "DATABRICKS_BUNDLE_ENV=${DATABRICKS_BUNDLE_ENV}" \
+          --env "DATABRICKS_HOST=${DATABRICKS_HOST}" \
+          --env "DATABRICKS_AUTH_TYPE=github-oidc" \
+          --env "DATABRICKS_CLIENT_ID=${DATABRICKS_CLIENT_ID}" \
+          --env "ACTIONS_ID_TOKEN_REQUEST_URL=${ACTIONS_ID_TOKEN_REQUEST_URL}" \
+          --env "ACTIONS_ID_TOKEN_REQUEST_TOKEN=${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
+          --volume "${GITHUB_WORKSPACE}/${DATABRICKS_BUNDLE_DIRECTORY}:/bundle" \
+          --workdir "/bundle" \
+          ${DATABRICKS_BUNDLE_IMAGE_REF} bundle ${DATABRICKS_BUNDLE_STAGE}
+      env:
+        DATABRICKS_BUNDLE_DIRECTORY: ${{ inputs.directory }}
+        DATABRICKS_BUNDLE_ENV: ${{ inputs.target }}
+        DATABRICKS_BUNDLE_STAGE: ${{ inputs.stage }}
+        DATABRICKS_BUNDLE_IMAGE_REF: ${{ inputs.image }}
+    - name: Databricks Bundle Summary
+      shell: bash
+      run: |
+        docker run --rm \
+          --env "DATABRICKS_BUNDLE_ENV=${DATABRICKS_BUNDLE_ENV}" \
+          --env "DATABRICKS_HOST=${DATABRICKS_HOST}" \
+          --env "DATABRICKS_AUTH_TYPE=github-oidc" \
+          --env "DATABRICKS_CLIENT_ID=${DATABRICKS_CLIENT_ID}" \
+          --env "ACTIONS_ID_TOKEN_REQUEST_URL=${ACTIONS_ID_TOKEN_REQUEST_URL}" \
+          --env "ACTIONS_ID_TOKEN_REQUEST_TOKEN=${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
+          --volume "${GITHUB_WORKSPACE}/${DATABRICKS_BUNDLE_DIRECTORY}:/bundle" \
+          --workdir "/bundle" \
+          ${DATABRICKS_BUNDLE_IMAGE_REF} bundle summary
+      env:
+        DATABRICKS_BUNDLE_DIRECTORY: ${{ inputs.directory }}
+        DATABRICKS_BUNDLE_ENV: ${{ inputs.target }}
+        DATABRICKS_BUNDLE_IMAGE_REF: ${{ inputs.image }}

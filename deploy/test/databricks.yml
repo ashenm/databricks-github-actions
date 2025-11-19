@@ -1,0 +1,14 @@
+bundle:
+  name: Saturn
+
+resources:
+  volumes:
+    o-rings:
+      name: saturn_o_rings
+      schema_name: hewagallage_gunaratne_personal_schema
+      catalog_name: main
+
+targets:
+  voyager:
+    default: true
+    workspace: https://one-env-voyager.cloud.databricks.com/

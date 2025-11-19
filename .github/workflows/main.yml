@@ -1,0 +1,23 @@
+on:
+  - push
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  DATABRICKS_LOG_LEVEL: DEBUG
+
+jobs:
+  deploy-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./deploy
+        with:
+          directory: ./deploy/test/
+          target: voyager
+          stage: plan
+        env:
+          DATABRICKS_HOST: ${{ vars.databricks_host }}
+          DATABRICKS_CLIENT_ID: ${{ vars.DATABRICKS_CLIENT_ID }}
