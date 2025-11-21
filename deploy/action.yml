@@ -21,36 +21,37 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: Validate Databricks Bundle
+    - name: Configure Environment
       shell: bash
       run: |
-        docker run --rm \
-          --env "DATABRICKS_BUNDLE_ENV=${DATABRICKS_BUNDLE_ENV}" \
-          --env "DATABRICKS_HOST=${DATABRICKS_HOST}" \
-          --env "DATABRICKS_AUTH_TYPE=github-oidc" \
-          --env "DATABRICKS_CLIENT_ID=${DATABRICKS_CLIENT_ID}" \
-          --env "ACTIONS_ID_TOKEN_REQUEST_URL=${ACTIONS_ID_TOKEN_REQUEST_URL}" \
-          --env "ACTIONS_ID_TOKEN_REQUEST_TOKEN=${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
-          --volume "${GITHUB_WORKSPACE}/${DATABRICKS_BUNDLE_DIRECTORY}:/bundle" \
-          --workdir "/bundle" \
-          ${DATABRICKS_BUNDLE_IMAGE_REF} bundle validate
+        if [ ${GITHUB_EVENT_NAME} = "pull_request" ]; then
+          pip --version
+          pip install --requirement ${GITHUB_ACTION_PATH}/requirements.txt
+        fi
+
+        ls --format=long ${DATABRICKS_BUNDLE_DIRECTORY}
+      env:
+        DATABRICKS_BUNDLE_DIRECTORY: ${{ inputs.directory }}
+    - name: Validate Databricks Bundle
+      shell: bash
+      run: ${GITHUB_ACTION_PATH}/run.sh validate
       env:
         DATABRICKS_BUNDLE_DIRECTORY: ${{ inputs.directory }}
         DATABRICKS_BUNDLE_ENV: ${{ inputs.target }}
         DATABRICKS_BUNDLE_IMAGE_REF: ${{ inputs.image }}
-    - name: Execute Databricks Bundle
+    - name: Validate Databricks Bundle Policies
+      if: ${{ github.event_name == 'pull_request' }}
       shell: bash
       run: |
-        docker run --rm \
-          --env "DATABRICKS_BUNDLE_ENV=${DATABRICKS_BUNDLE_ENV}" \
-          --env "DATABRICKS_HOST=${DATABRICKS_HOST}" \
-          --env "DATABRICKS_AUTH_TYPE=github-oidc" \
-          --env "DATABRICKS_CLIENT_ID=${DATABRICKS_CLIENT_ID}" \
-          --env "ACTIONS_ID_TOKEN_REQUEST_URL=${ACTIONS_ID_TOKEN_REQUEST_URL}" \
-          --env "ACTIONS_ID_TOKEN_REQUEST_TOKEN=${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
-          --volume "${GITHUB_WORKSPACE}/${DATABRICKS_BUNDLE_DIRECTORY}:/bundle" \
-          --workdir "/bundle" \
-          ${DATABRICKS_BUNDLE_IMAGE_REF} bundle ${DATABRICKS_BUNDLE_STAGE}
+        python3 ${GITHUB_ACTION_PATH}/validate.py \
+          --directory {DATABRICKS_BUNDLE_DIRECTORY} \
+          --stage ${DATABRICKS_BUNDLE_STAGE}
+      env:
+        DATABRICKS_BUNDLE_DIRECTORY: ${{ inputs.directory }}
+        DATABRICKS_BUNDLE_STAGE: ${{ inputs.stage }}
+    - name: Execute Databricks Bundle
+      shell: bash
+      run: ${GITHUB_ACTION_PATH}/run.sh ${DATABRICKS_BUNDLE_STAGE}
       env:
         DATABRICKS_BUNDLE_DIRECTORY: ${{ inputs.directory }}
         DATABRICKS_BUNDLE_ENV: ${{ inputs.target }}
@@ -58,17 +59,7 @@ runs:
         DATABRICKS_BUNDLE_IMAGE_REF: ${{ inputs.image }}
     - name: Databricks Bundle Summary
       shell: bash
-      run: |
-        docker run --rm \
-          --env "DATABRICKS_BUNDLE_ENV=${DATABRICKS_BUNDLE_ENV}" \
-          --env "DATABRICKS_HOST=${DATABRICKS_HOST}" \
-          --env "DATABRICKS_AUTH_TYPE=github-oidc" \
-          --env "DATABRICKS_CLIENT_ID=${DATABRICKS_CLIENT_ID}" \
-          --env "ACTIONS_ID_TOKEN_REQUEST_URL=${ACTIONS_ID_TOKEN_REQUEST_URL}" \
-          --env "ACTIONS_ID_TOKEN_REQUEST_TOKEN=${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
-          --volume "${GITHUB_WORKSPACE}/${DATABRICKS_BUNDLE_DIRECTORY}:/bundle" \
-          --workdir "/bundle" \
-          ${DATABRICKS_BUNDLE_IMAGE_REF} bundle summary
+      run: ${GITHUB_ACTION_PATH}/run.sh summary
       env:
         DATABRICKS_BUNDLE_DIRECTORY: ${{ inputs.directory }}
         DATABRICKS_BUNDLE_ENV: ${{ inputs.target }}
